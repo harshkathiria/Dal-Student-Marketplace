@@ -1,0 +1,106 @@
+default:
+  tags:
+    - dalmarket
+
+stages:
+  - build
+  - test
+  - quality
+  - deploy
+
+build:
+  image: node:latest
+  stage: build
+  script:
+    - echo "Building React Frontend"
+    - cd Frontend
+    - npm install
+    - CI=false npm run build
+  artifacts:
+    paths:
+      - Frontend/build/
+
+test_accounts:
+  image: python:latest
+  stage: test
+  script:
+    - echo "Testing stage Initiated"
+    - cd Accounts/
+    - pip install -r requirements.txt
+
+test_products:
+  image: python:latest
+  stage: test
+  script:
+    - echo "Testing stage Initiated"
+    - cd Products/
+    - pip install -r requirements.txt
+
+code_quality_accounts:
+  stage: quality
+  image: python:3.8
+  script:
+    - echo "Code Quality Analysis Initiated"
+    - cd Accounts
+    - pip install -r requirements.txt # Install any dependencies
+    - cd accounts
+    - pylint --exit-zero --output-format=json . > ../pylint-report-accounts.json # Run pylint and generate a report
+  artifacts:
+    reports:
+      codequality: Accounts/pylint-report-accounts.json
+  allow_failure: true # Set the allow_failure option to true
+
+code_quality_products:
+  stage: quality
+  image: python:3.8
+  script:
+    - cd Products
+    - pip install -r requirements.txt # Install any dependencies
+    - cd products
+    - pylint --exit-zero --output-format=json . > ../pylint-report-products.json # Run pylint and generate a report
+  artifacts:
+    reports:
+      codequality: Products/pylint-report-products.json
+  allow_failure: true # Set the allow_failure option to true
+
+deploy_accounts:
+  image: python:latest
+  stage: deploy
+  script:
+    - echo "Deploying Flask Accounts Backend"
+    - echo "Creating env for Products"
+    - echo "${ACCOUNTS_ENV}" >> accounts_env
+    - chmod og-rwx ${SSH_KEY}
+    - scp -r -o StrictHostKeyChecking=no -i ${SSH_KEY} ./Accounts ${DEPLOY_USER}@${DEPLOY_HOSTNAME}:/var/www/
+    - scp -r -o StrictHostKeyChecking=no -i ${SSH_KEY} accounts_env ${DEPLOY_USER}@${DEPLOY_HOSTNAME}:/var/www/Accounts/.env
+    - pip install -r ./Accounts/requirements.txt
+    - ssh -i ${SSH_KEY} ${DEPLOY_USER}@${DEPLOY_HOSTNAME} "cd /var/www/Accounts && gunicorn -b 127.0.0.1:5000 'accounts:create_app()' --daemon"
+  only:
+    - main
+
+deploy_products:
+  image: python:latest
+  stage: deploy
+  script:
+    - echo "Deploying Flask Products Backend"
+    - echo "Creating env for Products"
+    - echo "${PRODUCTS_ENV}" >> products_env
+    - chmod og-rwx ${SSH_KEY}
+    - scp -r -o StrictHostKeyChecking=no -i ${SSH_KEY} ./Products ${DEPLOY_USER}@${DEPLOY_HOSTNAME}:/var/www/
+    - scp -r -o StrictHostKeyChecking=no -i ${SSH_KEY} products_env ${DEPLOY_USER}@${DEPLOY_HOSTNAME}:/var/www/Products/.env
+    - pip install -r ./Products/requirements.txt
+    - ssh -i ${SSH_KEY} ${DEPLOY_USER}@${DEPLOY_HOSTNAME} "cd /var/www/Products && gunicorn -b 127.0.0.1:5001 'products:create_app()' --daemon"
+  only:
+    - main
+
+deploy_react:
+  stage: deploy
+  script:
+    - echo "Deploying React Frontend"
+    - chmod og-rwx ${SSH_KEY}
+    - scp -r -o StrictHostKeyChecking=no -i ${SSH_KEY} Frontend/build/* ${DEPLOY_USER}@${DEPLOY_HOSTNAME}:/var/www/frontend/
+    - ssh -i ${SSH_KEY} ${DEPLOY_USER}@${DEPLOY_HOSTNAME} "cd /var/www/frontend && http-server -p 8080 > /dev/null 2>&1 &"
+  only:
+    - main
+
+    

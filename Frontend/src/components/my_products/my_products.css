@@ -1,0 +1,15 @@
+.myp_nav{
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 50px;
+  padding-left: 1370px;
+}
+
+a:hover {
+  color: #242424;
+  background-color: #ffd711;
+  border-radius: 5px;
+  transform: scale(1.2);
+}

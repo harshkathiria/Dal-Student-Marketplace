@@ -1,0 +1,6 @@
+product_table_name = "products"
+product_image_table_name = "product_images"
+product_category_table_name = "products_category"
+product_status_table_name = "product_status"
+favourites_table_name = "favourites"
+user_table_name = "user"

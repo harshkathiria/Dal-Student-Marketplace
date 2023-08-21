@@ -1,0 +1,12 @@
+#frontend
+Frontend/node_modules
+
+#backend
+*.idea/
+*/.env
+*.DS_Store
+*.pyc
+*.pyo
+*/.cache/
+*/pytest_cache/
+*/.coverage
